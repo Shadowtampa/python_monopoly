@@ -1,0 +1,13 @@
+[2021-03-26]
+Notes:
+    Funções implementadas:
+        Classe Board
+        Classe Square (depois hierarquizar para Terreno, cofre, sorte, casa inicial, estacionamento, prisão, vá para a prisão, companhias )
+        Classe Player
+        CLasse Dados
+        Classe Player_in_Board (para salvar os dados dos jogadores no tabuleiro)
+        Classe 
+
+Ideas:
+TODO:
+Activity Log:
