@@ -19,14 +19,16 @@ def main():
     tabuleiro = Tabuleiro([player1, player2, player3, player4, player5])
 
     entrada = ''
-    player = ''
-    while entrada != 's':
+    play = True
+    while entrada != 's' and play == True:
         os.system('cls')
         print('-------------------------------------------------------------')
         tabuleiro.show_board()
         entrada = input(
             'Selecionar uma opção:\ns para sair\nm para mover\np para ver portfólio\nr para avançar a rodada\ne para interagir com o terreno\n')
 
+        if entrada == 's':
+            play = False
         if entrada == 'm':
             tabuleiro.move_player()
         if entrada == 'r':
@@ -50,6 +52,8 @@ class Player:
         self.dinheiro = dinheiro
         self.cor_player = cor_player
         self.posses = {}
+        self.jailed = False
+        self.position = None
 
     def get_name(self):
         return self.nome
@@ -77,6 +81,9 @@ class Player:
     def set_ownership(self, Terreno):
         pass
 
+    def is_jailed(self):
+        return self.jailed
+
 
 class Dice:
     def __init__(self, size):
@@ -91,13 +98,15 @@ class Dice:
 
 
 class Square:
-    def __init__(self, nome, terreno=False, description=None):
-        self.nome = nome
+    def __init__(self, name, terreno=False, description=None):
+        self.name = name
+        self.position = None
+
         self.description = description
         self.terreno = terreno
 
     def get_name(self):
-        return self.nome
+        return self.name
 
     def get_description(self):
         return self.description
@@ -105,18 +114,57 @@ class Square:
     def is_terreno(self):
         return self.terreno
 
+class Jail(Square):
+    def __init__(self, name, position, bail_value):
+        super().__init__(name, position)
+        self.bail_value = bail_value
+    
 
-class Terreno(Square):
-    def __init__(self,  nome, cor_terreno, valor, terreno, owner= None):
-        super().__init__(nome)
+class Go_to_Jail(Square):
+    def __init__(self, name, position=None):
+        super().__init__(name, position)
+
+class Area:
+    def __init__(self, color):
+        self.owner = 'owner'
+        self.bougth = False
+        self.color = color
+        self.lands = []
+
+    def add_land_name(self, land_name):
+        self.lands.append(land_name)
+
+    def get_lands(self):
+        return self.lands
+
+class Buyable(Square):
+    def __init__(self,  name,  value, rent,mortage_value,unmortage_value, owner= None, position=None):
+        super().__init__(name, position)
+        self.value = value
+        self.owner = owner
+        self.rent = rent
+        self.mortaged = False
+        self.mortage_value = mortage_value
+        self.unmortage_value = unmortage_value
+
+
+
+
+class Terreno(Buyable):
+    def __init__(self,  name, cor_terreno, valor, terreno, rent, mortage_value, unmortage_value, owner= None):
+        super().__init__(name,  valor, rent, mortage_value,unmortage_value, owner= None, position=None)
+
         self.cor_terreno = cor_terreno
         self.valor = valor
         self.terreno = terreno
         self.owner = owner
+
+        self.houses = 0
+        self.hotel = False
         
 
     def get_name(self):
-        return self.nome
+        return self.name
 
     def get_value(self):
         return self.valor
@@ -127,11 +175,30 @@ class Terreno(Square):
     def get_owner(self):
         return self.owner
 
+    def get_color(self):
+        return self.cor_terreno
+
 
 class Especial(Square):
     def __init__(self, nome, tipo):
         super().__init__(nome)
-        self.tipo = tipo
+        
+        if tipo == 'sorte':
+            actions =  {
+                0 : 'Revés: Pague 200 ao banco',
+                1 : 'Sorte: Ganhe 200 do banco'
+            }
+        else: 
+            actions =  {
+                0 : 'Pague 200 ao banco',
+                1 : 'Ganhe 200 do banco'
+            }
+
+        self.__actions = actions
+
+
+    def get_actions(self):
+        return self.__actions
         
 
 
@@ -151,6 +218,12 @@ class Tabuleiro:
         self.dice1 = Dice(6)
         self.dice2 = Dice(6)
 
+        self.areas_dict = {
+            'azul' : Area('azul'),
+            'vermelho' : Area('vermelho'),
+            'verde' : Area('verde')
+        }
+
         self.players_dict = {}
         # self.players_dict[ 1 ] = players[0]
         for i in range(len(players)):
@@ -158,18 +231,26 @@ class Tabuleiro:
 
         self.squares_dict = {  # Valores padrão das casas
             0: Initial("Receba seu Salário"),
-            1: Terreno("Travessa Sorriso de Maria", "azul", 3.00, True),
-            2: Terreno("Labic", "azul", 3.00, True),
-            3: Terreno("Laboratório 1", "azul", 3.00, True),
-            4: Terreno("Laboratório 2", "azul", 3.00, True),
-            5: Terreno("Reitoria", "azul", 3.00, True),
-            6: Terreno("Guarita", "azul", 3.00, True),
-            7: Terreno("Patifão", "azul", 3.00, True),
-            8: Terreno("Deck", "azul", 3.00, True),
+            1: Terreno("Travessa Sorriso de Maria", "azul", 3.00, True, 0, 0, 0),
+            2: Terreno("Labic", "azul", 3.00, True, 0, 0, 0),
+            3: Terreno("Laboratório 1", "azul", 3.00, True, 0, 0, 0),
+            4: Terreno("Laboratório 2", "vermelho", 3.00, True, 0, 0, 0),
+            5: Terreno("Reitoria", "azul", 3.00, True, 0, 0, 0),
+            6: Terreno("Guarita", "azul", 3.00, True, 0, 0, 0),
+            7: Terreno("Patifão", "azul", 3.00, True, 0, 0, 0),
+            8: Terreno("Deck", "vermelho", 3.00, True, 0, 0, 0),
             9: Especial("Cofre", "cofre"),
             10: Especial("Sorte", "sorte"),
-            11: Terreno("Mídias", "azul", 3.00, True)
+            11: Jail("Cadeia", 0, 0),#
+            12: Go_to_Jail("Vá para a cadeia"),#
+            13: Terreno("Mídias", "azul", 3.00, True, 0, 0, 0)
         }
+
+        for key in self.squares_dict:
+            if isinstance(self.squares_dict[key],Terreno):
+                for key_ in self.areas_dict:
+                    if key_ == self.squares_dict[key].get_color():
+                        self.areas_dict[key_].add_land_name(self.squares_dict[key].get_name())
 
         self.positions = Player_on_Board(players, len(self.squares_dict))
 
@@ -210,7 +291,7 @@ class Tabuleiro:
         self.dice1.set_dice_roll()
         self.dice1.set_dice_roll()
 
-        self.positions.player_walk(self.players[self.curret_player].get_color(
+        self.positions.player_walk(self.players[self.curret_player].is_jailed(),self.players[self.curret_player].get_color(
         ), (self.dice1.get_value()+self.dice2.get_value()))
 
     def get_player_portifolium(self):
@@ -299,13 +380,13 @@ class Player_on_Board:
 
         for i in range(len(players)):
             self.players_positions_dict[players[i].get_color()] = 0
+            print(self.players_positions_dict)
 
-        print(self.players_positions_dict)
-
-    def player_walk(self, key, value):
-        if((self.players_positions_dict[key] + value) % self.board_size != 0):
-            self.players_positions_dict[key] = (
-                self.players_positions_dict[key]+value) % self.board_size
+    def player_walk(self, player_is_jailed,key, value):
+        if not player_is_jailed:
+            if((self.players_positions_dict[key] + value) % self.board_size != 0):
+                self.players_positions_dict[key] = (
+                    self.players_positions_dict[key]+value) % self.board_size
 
     def get_player_position(self, player):
         return self.players_positions_dict[player.get_color()]
